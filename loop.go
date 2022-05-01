@@ -7,10 +7,10 @@ import (
 )
 
 //
-// On certain ARM64 hardware, at least on an M1 Pro performance (P) cores, this
+// On certain ARM64 hardware, at least on M1 Pro performance (P) cores, this
 // "pre-increment" loop is significantly slower in Go 1.17 and 1.18 than in 1.16
-// This loop is also slower on the efficiency cores of an M1 Pro, but far less
-// than the P cores.
+// This loop might also be a tiny bit slower on the M1 efficiency cores than on
+// the P cores, but I have not been able to reliably measure a difference.
 //
 // I used git bisect to find the change that caused this
 // https://go-review.googlesource.com/c/go/+/280155
@@ -37,59 +37,45 @@ import (
 //
 //     Two tests changed to accommodate modified instruction choice.
 //
-func MakeGeneratorClosurePre() func() int {
+func GetNextPrimePreIncrement(candidate int) int {
+	for {
 
-	candidate := 1
+		candidate++
 
-	getprime := func() int {
+		i := 2
+		for ; i < candidate; i++ {
 
-		for {
-
-			candidate++
-
-			i := 2
-			for ; i < candidate; i++ {
-
-				if candidate%i == 0 {
-					break
-				}
-			}
-
-			if i == candidate {
-				return candidate
+			if candidate%i == 0 {
+				break
 			}
 		}
-	}
 
-	return getprime
+		if i == candidate {
+			return candidate
+		}
+	}
 }
 
-func MakeGeneratorClosurePost() func() int {
+func GetNextPrimePostIncrement(candidate int) int {
 
-	candidate := 2
+	candidate++
 
-	getprime := func() int {
+	for {
 
-		for {
+		i := 2
+		for ; i < candidate; i++ {
 
-			i := 2
-			for ; i < candidate; i++ {
-
-				if candidate%i == 0 {
-					break
-				}
+			if candidate%i == 0 {
+				break
 			}
-
-			if i == candidate {
-				candidate++
-				return candidate - 1
-			}
-
-			candidate++
 		}
-	}
 
-	return getprime
+		if i == candidate {
+			return candidate
+		}
+
+		candidate++
+	}
 }
 
 func main() {
@@ -99,30 +85,25 @@ func main() {
 		os.Exit(1)
 	}
 
-	var closure func() int
+
+	var getnextprime func(int) int
 
 	switch os.Args[2] {
-	case "pre":
-		{
-			closure = MakeGeneratorClosurePre()
+		case "pre": {
+			getnextprime = GetNextPrimePreIncrement
 			break
 		}
 
-	case "post":
-		{
-			closure = MakeGeneratorClosurePost()
+		case "post": {
+			getnextprime = GetNextPrimePostIncrement
 			break
 		}
 
-	default:
-		panic(fmt.Sprintf("unknown implementation %s", os.Args[2]))
+		default:
+			panic(fmt.Sprintf("unknown implementation %s", os.Args[2]))
 	}
 
-	var prime int
+	prime := getnextprime(N)
 
-	for i := 0; i < N; i++ {
-		prime = closure()
-
-	}
 	fmt.Printf("prime=%d\n", prime)
 }

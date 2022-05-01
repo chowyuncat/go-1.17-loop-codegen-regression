@@ -1,6 +1,6 @@
 GO116=/opt/homebrew/opt/go@1.16/bin/go
 GO118=/opt/homebrew/opt/go@1.18/bin/go
-BENCH_N=30000
+BENCH_N=11037271757
 
 # macOS only: uncomment to force execution on the efficiency cores of an M1
 # XPROG=taskpolicy -c background
